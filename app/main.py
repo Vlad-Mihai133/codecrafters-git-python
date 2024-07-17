@@ -5,9 +5,8 @@ import zlib
 
 def main():
 
-    # Uncomment this block to pass the first stage
-
     command = sys.argv[1]
+    # git init
     if command == "init":
         os.mkdir(".git")
         os.mkdir(".git/objects")
@@ -15,6 +14,7 @@ def main():
         with open(".git/HEAD", "w") as f:
             f.write("ref: refs/heads/main\n")
         print("Initialized git directory")
+    # git cat-file -> read blob object
     elif command == "cat-file":
         if sys.argv[2] == "-p":
             blob_sha = sys.argv[3]
