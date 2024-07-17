@@ -22,7 +22,7 @@ def main():
             blob_sha = sys.argv[3]
             with open(f".git/objects/{blob_sha[:2]}/{blob_sha[2:]}", "rb") as file:
                 raw = zlib.decompress(file.read())
-                header, content = raw.split(b"/0", maxsplit=1)
+                header, content = raw.split(b"\0", maxsplit=1)
                 print(content.decode("utf-8"), end="")
     else:
         raise RuntimeError(f"Unknown command #{command}")
