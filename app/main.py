@@ -1,6 +1,7 @@
 import sys
 import os
 import zlib
+import hashlib
 
 
 def init():
@@ -21,6 +22,19 @@ def cat_file(command):
             raw = zlib.decompress(file.read())
             header, content = raw.split(b"\0", maxsplit=1)
             print(content.decode("utf-8"), end="")
+
+
+def hash_object(file_name):
+    with open(file_name,"rb") as file:
+        file_content = file.read()
+    git_path = os.path.join(os.getcwd(), ".git/objects")
+    obj_header = f"blob {len(file_content)}\x00"
+    obj_content = obj_header.encode("ascii") + file_content
+    sha = hashlib.sha1(obj_content).hexdigest()
+    os.mkdir(os.path.join(git_path, sha[:2]))
+    with open(os.path.join(git_path, sha[:2], sha[2:]), "wb") as file:
+        file.write(zlib.compress(obj_content))
+    print(sha, end='')
 
 
 def main():
