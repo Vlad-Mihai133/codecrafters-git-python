@@ -38,7 +38,7 @@ def hash_object(command):
     # make blob header
     obj_header = f"blob {len(file_content)}\x00"
     # this is blob header + content
-    obj_content = obj_header.encode("ascii") + file_content
+    obj_content = obj_header.encode("utf-8") + file_content  # change to .encode("ascii") if it doesn't work
     # here we get the SHA hash
     sha = hashlib.sha1(obj_content).hexdigest()
     os.mkdir(os.path.join(git_path, sha[:2]))
@@ -79,21 +79,53 @@ The entries in the tree object would look like this:
     # we get the data
     with open(os.path.join(os.getcwd(), ".git/objects", tree_hash[:2], tree_hash[2:]), "rb") as file:
         data = zlib.decompress(file.read())
-    _, binary_data = data.split(b'\x00', maxsplit=1)
+    _, binary_data = data.split(b"\x00", maxsplit=1)
     while binary_data:
-        mode_name, hsh = binary_data.split(b'\x00', maxsplit=1)
+        mode_name, hsh = binary_data.split(b"\x00", maxsplit=1)
         mode, name = mode_name.split()
         if sys.argv[2] == "--name-only":
             print(name.decode("utf-8"))
         else:
-            if mode == "blob":
-                print(f"100644 {mode.decode("utf-8")} {hsh.decode("utf-8")}\t{name.decode("utf-8")}")
-            elif mode == "tree":
-                print(f"040000 {mode.decode("utf-8")} {hsh.decode("utf-8")}\t{name.decode("utf-8")}")
+            if mode.decode("utf-8") == "100644":
+                print(f"100644 blob {hsh.decode("utf-8")}\t{name.decode("utf-8")}")
+            elif mode.decode("utf-8") == "040000":
+                print(f"040000 tree {hsh.decode("utf-8")}\t{name.decode("utf-8")}")
             else:
                 raise RuntimeError(f"Unknown file type{mode.decode("utf-8")}")
         # here we go to the next item, every SHA hash is 20 bytes long
         binary_data = binary_data[20:]
+
+
+def create_blob(path):
+    with open(path, "rb") as file:
+        file_content = file.read()
+    # get path
+    git_path = os.path.join(os.getcwd(), ".git/objects")
+    # make blob header
+    obj_header = f"blob {len(file_content)}\x00"
+    # this is blob header + content
+    obj_content = obj_header.encode("utf-8") + file_content  # change to .encode("ascii") if it doesn't work
+    # here we get the SHA hash
+    sha = hashlib.sha1(obj_content).hexdigest()
+    os.mkdir(os.path.join(git_path, sha[:2]))
+    with open(os.path.join(git_path, sha[:2], sha[2:]), "wb") as file:
+        file.write(zlib.compress(obj_content))
+    return sha
+
+
+def write_tree(command, path):
+    if os.path.isfile(path):
+        return create_blob(path)
+    all_files = sorted(
+        os.listdir(path),
+        key=lambda x: x if os.path.isfile(os.path.join(path, x)) else f"{x}/"
+        )
+    s=b""
+    for entry in all_files:
+        if entry == ".git":
+            continue
+        entry_path = os.path.join(path, entry)
+        if os.path.isfile(entry_path):
 
 
 def main():
@@ -108,6 +140,9 @@ def main():
         hash_object(command)
     elif command == "ls-tree":
         ls_tree(command)
+    elif command == "write-tree":
+        currentdir_path = os.getcwd()
+        write_tree(command, currentdir_path)
     else:
         raise RuntimeError(f"Unknown command #{command}")
 
