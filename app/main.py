@@ -116,16 +116,31 @@ def create_blob(path):
 def write_tree(command, path):
     if os.path.isfile(path):
         return create_blob(path)
+    # we sort everything because GIT sorts everything
     all_files = sorted(
         os.listdir(path),
         key=lambda x: x if os.path.isfile(os.path.join(path, x)) else f"{x}/"
-        )
-    s=b""
+    )
+    s = b""
     for entry in all_files:
         if entry == ".git":
             continue
         entry_path = os.path.join(path, entry)
         if os.path.isfile(entry_path):
+            s += f"100644 {entry}\0".encode("utf-8")
+        else:
+            s += f"040000 {entry}\0".encode("utf-8")
+        # recursively
+        sha1 = int.to_bytes(int(write_tree(command, entry_path), base=16), length=20, byteorder="big")
+        s += sha1
+    # make the current tree
+    tree = f"tree {len(s)}\0".encode("utf-8") + s
+    sha1 = hashlib.sha1(tree).hexdigest()
+    os.makedirs(f".git/objects/{sha1[:2]}", exist_ok=True)
+    with open(f".git/objects/{sha1[:2]}/{sha1[2:]}", "wb") as file:
+        file.write(zlib.compress(tree))
+    # return sha hash code
+    return sha1
 
 
 def main():
