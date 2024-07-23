@@ -1,3 +1,4 @@
+from datetime import datetime
 import sys
 import os
 import zlib
@@ -143,6 +144,49 @@ def write_tree(command, path):
     return sha1
 
 
+def commit_tree(command):
+    # ./your_program.sh commit-tree <tree_sha> -m <message>
+    # ./your_program.sh commit-tree <tree_sha> -p <commit_sha> -m <message>
+    if len(sys.argv) != 7 or len(sys.argv) != 5:
+        raise RuntimeError(f"Unknown command #{command}")
+    tree_sha = sys.argv[2]
+    if len(sys.argv) == 7:
+        if sys.argv[3] != "-p" or sys.argv[5] != "-m":
+            raise RuntimeError(f"Unknown command #{command}")
+        commit_sha = sys.argv[4]
+        message = sys.argv[6]
+        content = b"".join(
+            [
+                b"Author: Vlad-Mihai133 <vladmihai.ionescu133@gmail.com>\n",
+                b"Date: %b\n" % datetime.now().strftime("%Y-%m-%d %H-%M-%S").encode("utf-8"),
+                b"Tree SHA: %b\n" % tree_sha.encode("utf-8"),
+                b"Parent Commit: %b\n\n" % commit_sha.encode("utf-8"),
+                message.encode("utf-8"),
+                b"\n"
+            ]
+        )
+    else:
+        if sys.argv[3] != "-m":
+            raise RuntimeError(f"Unknown command #{command}")
+        message = sys.argv[4]
+        content = b"".join(
+            [
+                b"Author: Vlad-Mihai133 <vladmihai.ionescu133@gmail.com>\n",
+                b"Date: %b\n" % datetime.now().strftime("%Y-%m-%d %H-%M-%S").encode("utf-8"),
+                b"Tree SHA: %b\n\n" % tree_sha.encode("utf-8"),
+                message.encode("utf-8"),
+                b"\n"
+            ]
+        )
+    obj_header = f"commit {len(content)}\0".encode("utf-8")
+    obj_content = obj_header + content
+    sha = hashlib.sha1(obj_content).hexdigest()
+    os.makedirs(f".git/objects/{sha[:2]}/{sha[2:]}")
+    with open(f".git/objects/{sha[:2]}/{sha[2:]}", "wb") as file:
+        file.write(zlib.compress(obj_content))
+    print(sha)
+
+
 def main():
     command = sys.argv[1]
     # git init
@@ -158,6 +202,8 @@ def main():
     elif command == "write-tree":
         currentdir_path = os.getcwd()
         write_tree(command, currentdir_path)
+    elif command == "commit-tree":
+        commit_tree(command)
     else:
         raise RuntimeError(f"Unknown command #{command}")
 
