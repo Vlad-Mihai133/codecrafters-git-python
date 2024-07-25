@@ -1,3 +1,5 @@
+Quick disclaimer: The first 6 stages are completed! I have not bought the subscription for the website yet so I was unable to properly "verify" with their bot if the code runs well or not. I assure you, it does!
+
 [![progress-banner](https://backend.codecrafters.io/progress/git/cf8fb3b4-5db3-4319-9cc5-a2e2ab5b336c)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
 
 This is a starting point for Python solutions to the
